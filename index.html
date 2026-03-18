@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASO Status Bar Editor</title>
+    
+    <!-- Load Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Load React -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    
+    <!-- Load Babel to compile JSX in the browser -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useCallback, useRef } = React;
+
+        // --- Inlined SVG Icons (Replaces lucide-react dependency) ---
+        const Icons = {
+            Smartphone: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>,
+            Download: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>,
+            Trash2: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>,
+            Settings: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>,
+            ImageIcon: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>,
+            Palette: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="13.5" cy="6.5" r=".5"></circle><circle cx="17.5" cy="10.5" r=".5"></circle><circle cx="8.5" cy="7.5" r=".5"></circle><circle cx="6.5" cy="12.5" r=".5"></circle><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.836-.437-1.124-.224-.251-.344-.582-.344-.925 0-.746.61-1.35 1.35-1.35h1.564c2.83 0 5.129-2.298 5.129-5.128C20.91 6.36 16.91 2 12 2z"></path></svg>,
+            Upload: (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+        };
+
+        const { Smartphone, Download, Trash2, Settings, ImageIcon, Palette, Upload } = Icons;
+
+        // --- Main Application Component ---
+        function App() {
+            const [files, setFiles] = useState([]);
+            const [processedImages, setProcessedImages] = useState({});
+            const [isDragging, setIsDragging] = useState(false);
+            const [isProcessing, setIsProcessing] = useState(false);
+            const fileInputRef = useRef(null);
+
+            // App Settings
+            const [settings, setSettings] = useState({
+                deviceType: 'phone', // 'phone' or 'tablet'
+                osStyle: 'ios', // 'ios' or 'android'
+                theme: 'auto', // 'auto' (detect contrast), 'light' (white text) or 'dark' (black text)
+                bgMode: 'auto', // 'auto' (sample top-left), 'transparent', 'black', 'white'
+                heightPercent: 6, // Height of the status bar relative to image height
+                timeText: '9:41',
+            });
+
+            // Handle Drag & Drop
+            const onDragOver = useCallback((e) => {
+                e.preventDefault();
+                setIsDragging(true);
+            }, []);
+
+            const onDragLeave = useCallback((e) => {
+                e.preventDefault();
+                setIsDragging(false);
+            }, []);
+
+            const onDrop = useCallback((e) => {
+                e.preventDefault();
+                setIsDragging(false);
+                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    handleFiles(Array.from(e.dataTransfer.files));
+                }
+            }, []);
+
+            const handleFileInput = (e) => {
+                if (e.target.files && e.target.files.length > 0) {
+                    handleFiles(Array.from(e.target.files));
+                }
+                if (fileInputRef.current) fileInputRef.current.value = '';
+            };
+
+            const handleFiles = (newFiles) => {
+                const imageFiles = newFiles.filter(file => file.type.startsWith('image/'));
+                const fileObjects = imageFiles.map(file => ({
+                    id: Math.random().toString(36).substring(2, 9),
+                    name: file.name,
+                    file: file,
+                    originalUrl: URL.createObjectURL(file)
+                }));
+                setFiles(prev => [...prev, ...fileObjects]);
+            };
+
+            const removeFile = (id) => {
+                setFiles(prev => prev.filter(f => f.id !== id));
+                setProcessedImages(prev => {
+                    const newImages = { ...prev };
+                    delete newImages[id];
+                    return newImages;
+                });
+            };
+
+            const clearAll = () => {
+                setFiles([]);
+                setProcessedImages({});
+            };
+
+            // Canvas Drawing Logic
+            const drawStatusBar = (ctx, w, h, settings) => {
+                const barHeight = h * (settings.heightPercent / 100);
+                const isLandscape = w > h;
+                const ref = Math.min(w, h); // Use smaller dimension for scaling elements
+                
+                // Sample top-left pixel for auto calculations
+                const topPixel = ctx.getImageData(0, 0, 1, 1).data;
+                const pixelRgb = [topPixel[0], topPixel[1], topPixel[2]];
+
+                // Draw Background
+                if (settings.bgMode !== 'transparent') {
+                    let bgColor = 'transparent';
+                    if (settings.bgMode === 'black') bgColor = '#000000';
+                    if (settings.bgMode === 'white') bgColor = '#ffffff';
+                    if (settings.bgMode === 'auto') {
+                        bgColor = `rgb(${pixelRgb[0]}, ${pixelRgb[1]}, ${pixelRgb[2]})`;
+                    }
+                    ctx.fillStyle = bgColor;
+                    ctx.fillRect(0, 0, w, barHeight);
+                }
+
+                // Determine Text/Icon Color
+                let color = '#ffffff';
+                if (settings.theme === 'light') color = '#ffffff';
+                else if (settings.theme === 'dark') color = '#000000';
+                else { // 'auto'
+                    let evalRgb = pixelRgb;
+                    if (settings.bgMode === 'black') evalRgb = [0, 0, 0];
+                    if (settings.bgMode === 'white') evalRgb = [255, 255, 255];
+                    
+                    // Calculate relative luminance to determine contrast
+                    const luminance = 0.299 * evalRgb[0] + 0.587 * evalRgb[1] + 0.114 * evalRgb[2];
+                    color = luminance > 128 ? '#000000' : '#ffffff';
+                }
+
+                ctx.fillStyle = color;
+                ctx.strokeStyle = color;
+
+                // Adjust padding based on device type. Tablets need less relative padding so icons stay near the edges, but enough to look natural.
+                const paddingMultiplier = settings.deviceType === 'tablet' ? 0.02 : 0.06;
+                const padding = ref * paddingMultiplier;
+                const fontSize = barHeight * 0.45; // Font size based on bar height
+                
+                // 1. Draw Time "9:41"
+                ctx.font = `600 ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif`;
+                if (settings.osStyle === 'android') {
+                    ctx.font = `500 ${fontSize}px Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif`;
+                }
+                ctx.textBaseline = 'middle';
+                ctx.textAlign = 'center';
+                // Position time on the left, considering notch padding
+                const timeX = padding * 1.5;
+                const timeY = barHeight * 0.55; 
+                ctx.fillText(settings.timeText, timeX, timeY);
+
+                // Right Side Icons configuration
+                const rightPadding = w - padding * 1.5;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+
+                if (settings.osStyle === 'android') {
+                    // --- ANDROID STYLE ICONS ---
+                    // 2. Draw Battery (Horizontal)
+                    const batW = fontSize * 0.9;
+                    const batH = fontSize * 0.55;
+                    const batX = rightPadding - batW;
+                    const batY = timeY - batH / 2;
+                    const batLineWidth = Math.max(1, fontSize * 0.08);
+                    
+                    ctx.lineWidth = batLineWidth;
+                    // Battery Body
+                    ctx.beginPath();
+                    ctx.roundRect(batX, batY, batW, batH, batH * 0.1);
+                    ctx.stroke();
+                    // Battery Cap
+                    ctx.beginPath();
+                    ctx.roundRect(batX + batW + batLineWidth, timeY - batH * 0.2, batW * 0.1, batH * 0.4, 1);
+                    ctx.fill();
+                    // Battery Fill (Full)
+                    const fillPad = batLineWidth * 1.5;
+                    ctx.beginPath();
+                    ctx.roundRect(batX + fillPad, batY + fillPad, batW - fillPad * 2, batH - fillPad * 2, 1);
+                    ctx.fill();
+
+                    // 3. Draw Cellular Signal (Solid right triangle)
+                    const cellW = fontSize * 0.65;
+                    const cellH = fontSize * 0.65;
+                    const cellX = batX - fontSize * 0.5 - cellW;
+                    const cellY = timeY + cellH / 2;
+                    ctx.beginPath();
+                    ctx.moveTo(cellX, cellY); // bottom-left
+                    ctx.lineTo(cellX + cellW, cellY); // bottom-right
+                    ctx.lineTo(cellX + cellW, cellY - cellH); // top-right
+                    ctx.closePath();
+                    ctx.fill();
+
+                    // 4. Draw Wi-Fi (Solid wedge)
+                    const wifiR = fontSize * 0.7;
+                    const wifiX = cellX - fontSize * 0.4 - wifiR / 2;
+                    const wifiY = cellY - cellH * 0.1; // Align slightly above bottom
+                    ctx.beginPath();
+                    ctx.moveTo(wifiX, wifiY);
+                    ctx.arc(wifiX, wifiY, wifiR, Math.PI * 1.25, Math.PI * 1.75);
+                    ctx.closePath();
+                    ctx.fill();
+                } else {
+                    // --- IOS STYLE ICONS ---
+                    // 2. Draw Battery
+                    const batW = fontSize * 1.6;
+                    const batH = fontSize * 0.75;
+                    const batX = rightPadding - batW;
+                    const batY = timeY - batH / 2;
+                    const batLineWidth = Math.max(1, fontSize * 0.08);
+                    
+                    ctx.lineWidth = batLineWidth;
+                    // Battery Body
+                    ctx.beginPath();
+                    ctx.roundRect(batX, batY, batW, batH, batH * 0.25);
+                    ctx.stroke();
+                    // Battery Cap
+                    ctx.beginPath();
+                    const capW = batW * 0.08;
+                    const capH = batH * 0.4;
+                    ctx.roundRect(batX + batW + batLineWidth * 2, timeY - capH / 2, capW, capH, capH / 2);
+                    ctx.fill();
+                    // Battery Fill (Full)
+                    ctx.beginPath();
+                    const fillPad = batLineWidth * 2;
+                    ctx.roundRect(batX + fillPad, batY + fillPad, batW - fillPad * 2, batH - fillPad * 2, batH * 0.15);
+                    ctx.fill();
+
+                    // 3. Draw Wi-Fi
+                    const wifiX = batX - fontSize * 0.8;
+                    const wifiY = timeY + fontSize * 0.25;
+                    ctx.lineWidth = Math.max(1.2, fontSize * 0.1);
+                    // Wifi Dot
+                    ctx.beginPath();
+                    ctx.arc(wifiX, wifiY, ctx.lineWidth * 0.8, 0, Math.PI * 2);
+                    ctx.fill();
+                    // Wifi Arcs
+                    const arcSpacing = fontSize * 0.22;
+                    for (let i = 1; i <= 3; i++) {
+                        ctx.beginPath();
+                        ctx.arc(wifiX, wifiY, arcSpacing * i, Math.PI * 1.25, Math.PI * 1.75);
+                        ctx.stroke();
+                    }
+
+                    // 4. Draw Cellular Signal (4 bars)
+                    const cellW = fontSize * 0.15;
+                    const cellSpacing = cellW * 1.2;
+                    const cellBaseX = wifiX - fontSize * 1.2;
+                    
+                    for (let i = 0; i < 4; i++) {
+                        const barH = fontSize * (0.3 + (i * 0.15));
+                        ctx.beginPath();
+                        // Draw backwards from the base X
+                        const xPos = cellBaseX - ((3 - i) * (cellW + cellSpacing));
+                        ctx.roundRect(xPos, timeY + (fontSize * 0.3) - barH, cellW, barH, cellW / 2);
+                        ctx.fill();
+                    }
+                }
+            };
+
+            const processImage = (fileObj) => {
+                return new Promise((resolve) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        const ctx = canvas.getContext('2d');
+                        
+                        // Draw original image
+                        ctx.drawImage(img, 0, 0);
+                        
+                        // Overlay Status Bar
+                        drawStatusBar(ctx, img.width, img.height, settings);
+                        
+                        // Output matching the original image format
+                        const mimeType = fileObj.file.type === 'image/jpeg' ? 'image/jpeg' : 'image/png';
+                        resolve(canvas.toDataURL(mimeType, 1.0));
+                    };
+                    img.src = fileObj.originalUrl;
+                });
+            };
+
+            // Process all files when files or settings change
+            useEffect(() => {
+                const runProcessing = async () => {
+                    if (files.length === 0) return;
+                    setIsProcessing(true);
+                    
+                    const newProcessedImages = { ...processedImages };
+                    
+                    for (const fileObj of files) {
+                        newProcessedImages[fileObj.id] = await processImage(fileObj);
+                    }
+                    
+                    setProcessedImages(newProcessedImages);
+                    setIsProcessing(false);
+                };
+
+                runProcessing();
+            }, [files, settings]); 
+
+            // Download logic
+            const downloadImage = (id, filename) => {
+                const url = processedImages[id];
+                if (!url) return;
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `aso-ready-${filename}`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            };
+
+            const downloadAll = async () => {
+                for (const fileObj of files) {
+                    downloadImage(fileObj.id, fileObj.name);
+                    // Slight delay to prevent browser from blocking multiple downloads
+                    await new Promise(r => setTimeout(r, 400)); 
+                }
+            };
+
+            return (
+                <div className="min-h-screen bg-neutral-50 text-neutral-900 font-sans">
+                    {/* Header */}
+                    <header className="bg-white border-b border-neutral-200 sticky top-0 z-10">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <Smartphone className="w-6 h-6 text-blue-600" />
+                                <h1 className="text-xl font-bold tracking-tight">ASO Status Bar Editor</h1>
+                            </div>
+                            {files.length > 0 && (
+                                <div className="flex items-center gap-3">
+                                    <button 
+                                        onClick={clearAll}
+                                        className="text-sm font-medium text-neutral-500 hover:text-red-600 transition-colors px-3 py-2"
+                                    >
+                                        Clear All
+                                    </button>
+                                    <button 
+                                        onClick={downloadAll}
+                                        disabled={isProcessing}
+                                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors"
+                                    >
+                                        <Download className="w-4 h-4" />
+                                        Download All ({files.length})
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </header>
+
+                    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col lg:flex-row gap-8">
+                        
+                        {/* Left Sidebar: Settings */}
+                        <div className="lg:w-80 flex-shrink-0 space-y-6">
+                            <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-5">
+                                <div className="flex items-center gap-2 mb-4 pb-4 border-b border-neutral-100">
+                                    <Settings className="w-5 h-5 text-neutral-500" />
+                                    <h2 className="text-lg font-semibold">Settings</h2>
+                                </div>
+                                
+                                <div className="space-y-5">
+                                    {/* Device Type Selection */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-neutral-700 mb-2">Form Factor</label>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <button
+                                                onClick={() => setSettings({...settings, deviceType: 'phone'})}
+                                                className={`py-2 px-3 border rounded-lg text-sm font-medium transition-all ${settings.deviceType === 'phone' ? 'bg-neutral-900 text-white border-neutral-900 shadow-sm' : 'bg-white text-neutral-700 hover:bg-neutral-50'}`}
+                                            >
+                                                Phone
+                                            </button>
+                                            <button
+                                                onClick={() => setSettings({...settings, deviceType: 'tablet'})}
+                                                className={`py-2 px-3 border rounded-lg text-sm font-medium transition-all ${settings.deviceType === 'tablet' ? 'bg-neutral-900 text-white border-neutral-900 shadow-sm' : 'bg-white text-neutral-700 hover:bg-neutral-50'}`}
+                                            >
+                                                Tablet / iPad
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Device Style Selection */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-neutral-700 mb-2">Device Style</label>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <button
+                                                onClick={() => setSettings({...settings, osStyle: 'ios'})}
+                                                className={`py-2 px-3 border rounded-lg text-sm font-medium transition-all ${settings.osStyle === 'ios' ? 'bg-neutral-900 text-white border-neutral-900 shadow-sm' : 'bg-white text-neutral-700 hover:bg-neutral-50'}`}
+                                            >
+                                                iOS
+                                            </button>
+                                            <button
+                                                onClick={() => setSettings({...settings, osStyle: 'android'})}
+                                                className={`py-2 px-3 border rounded-lg text-sm font-medium transition-all ${settings.osStyle === 'android' ? 'bg-neutral-900 text-white border-neutral-900 shadow-sm' : 'bg-white text-neutral-700 hover:bg-neutral-50'}`}
+                                            >
+                                                Android
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Theme Selection */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-neutral-700 mb-2">Icon & Text Color</label>
+                                        <div className="grid grid-cols-3 gap-2">
+                                            <button
+                                                onClick={() => setSettings({...settings, theme: 'auto'})}
+                                                className={`py-2 px-2 border rounded-lg text-sm font-medium transition-all ${settings.theme === 'auto' ? 'bg-blue-50 text-blue-700 border-blue-200 shadow-sm' : 'bg-white text-neutral-700 hover:bg-neutral-50'}`}
+                                            >
+                                                Auto
+                                            </button>
+                                            <button
+                                                onClick={() => setSettings({...settings, theme: 'light'})}
+                                                className={`py-2 px-2 border rounded-lg text-sm font-medium transition-all ${settings.theme === 'light' ? 'bg-neutral-900 text-white border-neutral-900' : 'bg-white text-neutral-700 hover:bg-neutral-50'}`}
+                                            >
+                                                White
+                                            </button>
+                                            <button
+                                                onClick={() => setSettings({...settings, theme: 'dark'})}
+                                                className={`py-2 px-2 border rounded-lg text-sm font-medium transition-all ${settings.theme === 'dark' ? 'bg-white text-neutral-900 border-neutral-900 shadow-sm' : 'bg-neutral-50 text-neutral-500 hover:bg-white'}`}
+                                            >
+                                                Black
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Background Selection */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-neutral-700 mb-2 flex items-center gap-1">
+                                            <Palette className="w-4 h-4 text-neutral-400" /> Background Mode
+                                        </label>
+                                        <select 
+                                            value={settings.bgMode}
+                                            onChange={(e) => setSettings({...settings, bgMode: e.target.value})}
+                                            className="w-full border border-neutral-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                        >
+                                            <option value="auto">Auto-detect (Cover old bar)</option>
+                                            <option value="transparent">Transparent (Overlay only)</option>
+                                            <option value="white">Solid White</option>
+                                            <option value="black">Solid Black</option>
+                                        </select>
+                                        <p className="text-xs text-neutral-500 mt-1.5 leading-relaxed">
+                                            "Auto-detect" samples the top edge color and draws a solid box to hide messy original status bars.
+                                        </p>
+                                    </div>
+
+                                    {/* Height Settings */}
+                                    <div>
+                                        <div className="flex justify-between items-center mb-2">
+                                            <label className="block text-sm font-medium text-neutral-700">Status Bar Height</label>
+                                            <span className="text-xs font-semibold bg-neutral-100 px-2 py-1 rounded text-neutral-600">{settings.heightPercent}%</span>
+                                        </div>
+                                        <input 
+                                            type="range" 
+                                            min="2" 
+                                            max="15" 
+                                            step="0.5"
+                                            value={settings.heightPercent}
+                                            onChange={(e) => setSettings({...settings, heightPercent: parseFloat(e.target.value)})}
+                                            className="w-full accent-blue-600"
+                                        />
+                                        {settings.deviceType === 'tablet' && (
+                                            <p className="text-xs text-neutral-500 mt-1.5 leading-relaxed">Tip: Tablets often look best with a smaller height (e.g., 3-4%).</p>
+                                        )}
+                                    </div>
+
+                                    {/* Time Text */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-neutral-700 mb-2">Time Display</label>
+                                        <input 
+                                            type="text" 
+                                            value={settings.timeText}
+                                            onChange={(e) => setSettings({...settings, timeText: e.target.value})}
+                                            className="w-full border border-neutral-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                            maxLength={10}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Right Content: Dropzone & Gallery */}
+                        <div className="flex-1 space-y-6">
+                            
+                            {/* Dropzone */}
+                            <div 
+                                onDragOver={onDragOver}
+                                onDragLeave={onDragLeave}
+                                onDrop={onDrop}
+                                onClick={() => fileInputRef.current?.click()}
+                                className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-all duration-200 
+                                    ${isDragging 
+                                        ? 'border-blue-500 bg-blue-50 shadow-inner' 
+                                        : 'border-neutral-300 bg-white hover:border-neutral-400 hover:bg-neutral-50'}`}
+                            >
+                                <input 
+                                    type="file" 
+                                    multiple 
+                                    accept="image/png, image/jpeg, image/jpg" 
+                                    className="hidden" 
+                                    ref={fileInputRef}
+                                    onChange={handleFileInput}
+                                />
+                                <div className="mx-auto w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                                    <Upload className="w-6 h-6 text-blue-600" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-neutral-900 mb-1">Upload Screenshots</h3>
+                                <p className="text-sm text-neutral-500 max-w-sm mx-auto">
+                                    Drag and drop your App Store/Play Store screenshots here, or click to browse. We process images locally in your browser.
+                                </p>
+                            </div>
+
+                            {/* Processing Indicator */}
+                            {isProcessing && (
+                                <div className="text-center py-4 text-sm font-medium text-blue-600 animate-pulse flex items-center justify-center gap-2">
+                                    <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                                    Processing images...
+                                </div>
+                            )}
+
+                            {/* Image Grid */}
+                            {files.length > 0 && (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                                    {files.map((fileObj) => (
+                                        <div key={fileObj.id} className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden flex flex-col group">
+                                            <div className="relative aspect-[9/16] bg-neutral-100 flex items-center justify-center overflow-hidden border-b border-neutral-100">
+                                                {processedImages[fileObj.id] ? (
+                                                    <img 
+                                                        src={processedImages[fileObj.id]} 
+                                                        alt={fileObj.name} 
+                                                        className="object-contain w-full h-full"
+                                                    />
+                                                ) : (
+                                                    <ImageIcon className="w-8 h-8 text-neutral-300 animate-pulse" />
+                                                )}
+                                                
+                                                {/* Hover Actions */}
+                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 backdrop-blur-[2px]">
+                                                    <button 
+                                                        onClick={() => downloadImage(fileObj.id, fileObj.name)}
+                                                        className="bg-white text-neutral-900 p-2 rounded-full shadow-lg hover:scale-110 transition-transform"
+                                                        title="Download"
+                                                    >
+                                                        <Download className="w-5 h-5" />
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => removeFile(fileObj.id)}
+                                                        className="bg-red-500 text-white p-2 rounded-full shadow-lg hover:scale-110 transition-transform"
+                                                        title="Remove"
+                                                    >
+                                                        <Trash2 className="w-5 h-5" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="p-3 flex items-center justify-between bg-white">
+                                                <p className="text-xs font-medium text-neutral-600 truncate mr-2" title={fileObj.name}>
+                                                    {fileObj.name}
+                                                </p>
+                                                <span className="text-[10px] uppercase font-bold tracking-wider text-green-600 bg-green-50 px-2 py-1 rounded-full whitespace-nowrap">
+                                                    Processed
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                        </div>
+                    </main>
+                </div>
+            );
+        }
+
+        // --- Render App ---
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
