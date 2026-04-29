@@ -179,47 +179,50 @@
 
                 if (settings.osStyle === 'android') {
                     // --- ANDROID STYLE ICONS ---
-                    // 2. Draw Battery (Horizontal)
-                    const batW = fontSize * 0.9;
-                    const batH = fontSize * 0.55;
+                    // Android uses a compact layout, usually with a vertical battery and tight spacing.
+                    const iconSpacing = fontSize * 0.35;
+
+                    // 2. Draw Battery (Vertical solid)
+                    const batW = fontSize * 0.45;
+                    const batH = fontSize * 0.75;
                     const batX = rightPadding - batW;
                     const batY = timeY - batH / 2;
-                    const batLineWidth = Math.max(1, fontSize * 0.08);
                     
-                    ctx.lineWidth = batLineWidth;
                     // Battery Body
                     ctx.beginPath();
-                    ctx.roundRect(batX, batY, batW, batH, batH * 0.1);
-                    ctx.stroke();
-                    // Battery Cap
-                    ctx.beginPath();
-                    ctx.roundRect(batX + batW + batLineWidth, timeY - batH * 0.2, batW * 0.1, batH * 0.4, 1);
+                    ctx.roundRect(batX, batY, batW, batH, batW * 0.15);
                     ctx.fill();
-                    // Battery Fill (Full)
-                    const fillPad = batLineWidth * 1.5;
+                    
+                    // Battery Cap
+                    const capW = batW * 0.4;
+                    const capH = fontSize * 0.12;
                     ctx.beginPath();
-                    ctx.roundRect(batX + fillPad, batY + fillPad, batW - fillPad * 2, batH - fillPad * 2, 1);
+                    ctx.roundRect(batX + (batW - capW) / 2, batY - capH + 0.5, capW, capH, 1); // +0.5 to overlap and prevent gaps
                     ctx.fill();
 
-                    // 3. Draw Cellular Signal (Solid right triangle)
-                    const cellW = fontSize * 0.65;
-                    const cellH = fontSize * 0.65;
-                    const cellX = batX - fontSize * 0.5 - cellW;
-                    const cellY = timeY + cellH / 2;
+                    // 3. Draw Wi-Fi (Solid wedge)
+                    const wifiR = fontSize * 0.65;
+                    const wifiW = wifiR * Math.sin(Math.PI / 4) * 2;
+                    const wifiX = batX - iconSpacing - wifiW / 2;
+                    // Center the wedge slightly higher than the absolute bottom
+                    const wifiY = batY + batH - fontSize * 0.05; 
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(wifiX, wifiY);
+                    ctx.arc(wifiX, wifiY, wifiR, Math.PI * 1.25, Math.PI * 1.75);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    // 4. Draw Cellular Signal (Solid right triangle)
+                    const cellW = fontSize * 0.6;
+                    const cellH = fontSize * 0.6;
+                    const cellX = wifiX - (wifiW / 2) - iconSpacing - cellW;
+                    const cellY = wifiY; // align bottom with wifi bottom tip
+                    
                     ctx.beginPath();
                     ctx.moveTo(cellX, cellY); // bottom-left
                     ctx.lineTo(cellX + cellW, cellY); // bottom-right
                     ctx.lineTo(cellX + cellW, cellY - cellH); // top-right
-                    ctx.closePath();
-                    ctx.fill();
-
-                    // 4. Draw Wi-Fi (Solid wedge)
-                    const wifiR = fontSize * 0.7;
-                    const wifiX = cellX - fontSize * 0.4 - wifiR / 2;
-                    const wifiY = cellY - cellH * 0.1; // Align slightly above bottom
-                    ctx.beginPath();
-                    ctx.moveTo(wifiX, wifiY);
-                    ctx.arc(wifiX, wifiY, wifiR, Math.PI * 1.25, Math.PI * 1.75);
                     ctx.closePath();
                     ctx.fill();
                 } else {
