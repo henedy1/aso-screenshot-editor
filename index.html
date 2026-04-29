@@ -47,7 +47,8 @@
                 deviceType: 'phone', // 'phone' or 'tablet'
                 osStyle: 'ios', // 'ios' or 'android'
                 theme: 'auto', // 'auto' (detect contrast), 'light' (white text) or 'dark' (black text)
-                bgMode: 'auto', // 'auto' (sample top-left), 'transparent', 'black', 'white'
+                bgMode: 'auto', // 'auto' (sample top-left), 'transparent', 'black', 'white', 'custom'
+                customBgColor: '#0f172a', // Default custom color
                 heightPercent: 6, // Height of the status bar relative to image height
                 timeText: '9:41',
             });
@@ -109,8 +110,10 @@
                 const isLandscape = w > h;
                 const ref = Math.min(w, h); // Use smaller dimension for scaling elements
                 
-                // Sample top-left pixel for auto calculations
-                const topPixel = ctx.getImageData(0, 0, 1, 1).data;
+                // Sample pixel slightly inwards to avoid rounded corners or device frame outlines
+                const sampleX = Math.floor(w * 0.1); // 10% from the left
+                const sampleY = Math.floor(barHeight * 0.5); // Halfway down the bar
+                const topPixel = ctx.getImageData(sampleX, sampleY, 1, 1).data;
                 const pixelRgb = [topPixel[0], topPixel[1], topPixel[2]];
 
                 // Draw Background
@@ -118,6 +121,7 @@
                     let bgColor = 'transparent';
                     if (settings.bgMode === 'black') bgColor = '#000000';
                     if (settings.bgMode === 'white') bgColor = '#ffffff';
+                    if (settings.bgMode === 'custom') bgColor = settings.customBgColor;
                     if (settings.bgMode === 'auto') {
                         bgColor = `rgb(${pixelRgb[0]}, ${pixelRgb[1]}, ${pixelRgb[2]})`;
                     }
@@ -133,6 +137,15 @@
                     let evalRgb = pixelRgb;
                     if (settings.bgMode === 'black') evalRgb = [0, 0, 0];
                     if (settings.bgMode === 'white') evalRgb = [255, 255, 255];
+                    if (settings.bgMode === 'custom') {
+                        // Simple hex to rgb converter for luminance calculation
+                        const hex = settings.customBgColor.replace('#', '');
+                        evalRgb = [
+                            parseInt(hex.substring(0, 2), 16),
+                            parseInt(hex.substring(2, 4), 16),
+                            parseInt(hex.substring(4, 6), 16)
+                        ];
+                    }
                     
                     // Calculate relative luminance to determine contrast
                     const luminance = 0.299 * evalRgb[0] + 0.587 * evalRgb[1] + 0.114 * evalRgb[2];
@@ -447,9 +460,23 @@
                                             <option value="transparent">Transparent (Overlay only)</option>
                                             <option value="white">Solid White</option>
                                             <option value="black">Solid Black</option>
+                                            <option value="custom">Custom Color</option>
                                         </select>
-                                        <p className="text-xs text-neutral-500 mt-1.5 leading-relaxed">
-                                            "Auto-detect" samples the top edge color and draws a solid box to hide messy original status bars.
+                                        
+                                        {settings.bgMode === 'custom' && (
+                                            <div className="mt-3 flex items-center gap-3 bg-neutral-50 p-2 rounded border border-neutral-200">
+                                                <input 
+                                                    type="color" 
+                                                    value={settings.customBgColor}
+                                                    onChange={(e) => setSettings({...settings, customBgColor: e.target.value})}
+                                                    className="h-8 w-16 cursor-pointer rounded border border-neutral-300 bg-white"
+                                                />
+                                                <span className="text-sm font-mono text-neutral-600 uppercase">{settings.customBgColor}</span>
+                                            </div>
+                                        )}
+
+                                        <p className="text-xs text-neutral-500 mt-2 leading-relaxed">
+                                            "Auto-detect" safely samples the background color to draw a solid box hiding messy original status bars.
                                         </p>
                                     </div>
 
@@ -457,19 +484,19 @@
                                     <div>
                                         <div className="flex justify-between items-center mb-2">
                                             <label className="block text-sm font-medium text-neutral-700">Status Bar Height</label>
-                                            <span className="text-xs font-semibold bg-neutral-100 px-2 py-1 rounded text-neutral-600">{settings.heightPercent}%</span>
+                                            <span className="text-xs font-semibold bg-neutral-100 px-2 py-1 rounded text-neutral-600">{settings.heightPercent.toFixed(1)}%</span>
                                         </div>
                                         <input 
                                             type="range" 
-                                            min="2" 
+                                            min="0.5" 
                                             max="15" 
-                                            step="0.5"
+                                            step="0.1"
                                             value={settings.heightPercent}
                                             onChange={(e) => setSettings({...settings, heightPercent: parseFloat(e.target.value)})}
                                             className="w-full accent-blue-600"
                                         />
                                         {settings.deviceType === 'tablet' && (
-                                            <p className="text-xs text-neutral-500 mt-1.5 leading-relaxed">Tip: Tablets often look best with a smaller height (e.g., 3-4%).</p>
+                                            <p className="text-xs text-neutral-500 mt-1.5 leading-relaxed">Tip: Tablets often look best with a smaller height (e.g., 2-3%).</p>
                                         )}
                                     </div>
 
