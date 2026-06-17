@@ -318,27 +318,35 @@
                     ctx.fill();
                 } else {
                     // --- IOS STYLE ---
-                    // Battery
-                    const batW = fontSize * 1.6;
-                    const batH = fontSize * 0.75;
+                    // Battery Outline and Fill Config
+                    const batW = fontSize * 1.55;
+                    const batH = fontSize * 0.72;
                     const batX = rightPadding - batW;
                     const batY = timeY - batH / 2;
-                    const batLineWidth = Math.max(1, fontSize * 0.08);
+                    const batLineWidth = Math.max(1.2, fontSize * 0.06);
                     
+                    // Native iOS battery border and cap are slightly transparent
+                    ctx.globalAlpha = 0.35;
                     ctx.lineWidth = batLineWidth;
+                    
+                    // 1. Draw Outline
                     ctx.beginPath();
-                    ctx.roundRect(batX, batY, batW, batH, batH * 0.25);
+                    ctx.roundRect(batX, batY, batW, batH, batH * 0.22);
                     ctx.stroke();
                     
+                    // 2. Draw Cap
                     ctx.beginPath();
                     const capW = batW * 0.08;
-                    const capH = batH * 0.4;
-                    ctx.roundRect(batX + batW + batLineWidth * 2, timeY - capH / 2, capW, capH, capH / 2);
+                    const capH = batH * 0.35;
+                    // Position it exactly touching the outer edge of the stroke (batX + batW + batLineWidth/2)
+                    ctx.roundRect(batX + batW + (batLineWidth / 2), timeY - capH / 2, capW, capH, [0, capH / 2, capH / 2, 0]);
                     ctx.fill();
                     
+                    // 3. Draw Inner Fill (Full opacity)
+                    ctx.globalAlpha = 1.0;
                     ctx.beginPath();
-                    const fillPad = batLineWidth * 2;
-                    ctx.roundRect(batX + fillPad, batY + fillPad, batW - fillPad * 2, batH - fillPad * 2, batH * 0.15);
+                    const fillPad = batLineWidth + (fontSize * 0.04);
+                    ctx.roundRect(batX + fillPad, batY + fillPad, batW - fillPad * 2, batH - fillPad * 2, batH * 0.08);
                     ctx.fill();
 
                     // Wi-Fi
